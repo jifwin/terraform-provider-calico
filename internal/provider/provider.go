@@ -29,7 +29,7 @@ type CalicoProvider struct {
 
 // CalicoProviderModel describes the provider data model.
 type CalicoProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+	Kubeconfig types.String `tfsdk:"kubeconfig"`
 }
 
 func (p *CalicoProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -40,9 +40,10 @@ func (p *CalicoProvider) Metadata(ctx context.Context, req provider.MetadataRequ
 func (p *CalicoProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
-				Optional:            true,
+			"kubeconfig": schema.StringAttribute{ //TODO: consider other options to authenticate to the cluster
+				//TODO: maybe split kubeconfig to token, host, etc
+				MarkdownDescription: "kubeconfig",
+				Required:            true,
 			},
 		},
 	}
@@ -51,6 +52,7 @@ func (p *CalicoProvider) Schema(ctx context.Context, req provider.SchemaRequest,
 func (p *CalicoProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	var data CalicoProviderModel
 
+	//TODO: should verify connection to the cluster, etc
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
