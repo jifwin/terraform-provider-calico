@@ -5,7 +5,7 @@ package provider
 
 import (
 	"context"
-	"net/http"
+	"flag"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -13,6 +13,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/projectcalico/api/pkg/client/clientset_generated/clientset"
 )
 
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
@@ -33,7 +37,7 @@ type CalicoProviderModel struct {
 }
 
 func (p *CalicoProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+	resp.TypeName = "calico"
 	resp.Version = p.version
 }
 
@@ -59,16 +63,40 @@ func (p *CalicoProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	// Create a new config based on kubeconfig file.
+	var kubeconfig *string //TODO: read from context
+	kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	flag.Parse() //TODO: read from context
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		panic(err.Error())
+	}
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	//TODO: read from content, not from file
+	// Build a clientset based on the provided kubeconfig file.
+	cs, err := clientset.NewForConfig(config) //TODO: pack this into resp?
+	if err != nil {
+		panic(err)
+	}
+	resp.ResourceData = cs
+	resp.DataSourceData = cs
+
+	//TODO: implement the first resource
+	//TODO: move out
+	_, err = cs.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), v1.ListOptions{})
+	if err != nil {
+		panic(err)
+	}
+	//TODo: verify that patch
+	//TODO: implement enable the patch resource
+	//TODO: EnableGlobalNetworkPoliciesPatch resource?
+
 }
 
+// TODO: how to wait for calico resources to be available
 func (p *CalicoProvider) Resources(ctx context.Context) []func() resource.Resource {
+	//TODO: move to another file
+	//TODO: clientset in configuration, use here
 	return []func() resource.Resource{
 		NewExampleResource,
 	}
