@@ -86,7 +86,8 @@ func (p *CalicoProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	//TODO: proper err handling via diagnostics?
 	if err != nil {
-		panic(err.Error())
+		panic(config.Kubeconfig.String())
+		//panic(err.Error())
 	}
 
 	clientset, err := clientset.NewForConfig(client)
