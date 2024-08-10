@@ -78,7 +78,8 @@ func (p *CalicoProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	//TODO: test with valid kubeconfig
 	kubeconfigGetter := func() (*clientcmdapi.Config, error) {
-		return clientcmd.Load([]byte(config.Kubeconfig.String()))
+		var kubeconfig = config.Kubeconfig.ValueString()
+		return clientcmd.Load([]byte(kubeconfig))
 	}
 
 	//TODO: check that empty string arg
