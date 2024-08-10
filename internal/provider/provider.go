@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/projectcalico/api/pkg/client/clientset_generated/clientset"
@@ -77,9 +76,9 @@ func (p *CalicoProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	//TODO: load from content, not from a file
+	//TODO: test with valid kubeconfig
 	kubeconfigGetter := func() (*clientcmdapi.Config, error) {
-		return clientcmd.LoadFromFile(config.Kubeconfig.String())
+		return clientcmd.Load([]byte(config.Kubeconfig.String()))
 	}
 
 	//TODO: check that empty string arg
@@ -98,17 +97,6 @@ func (p *CalicoProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	resp.ResourceData = clientset
 	resp.DataSourceData = clientset
-
-	//TODO: implement the first resource
-	//TODO: move out
-	_, err = clientset.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), v1.ListOptions{})
-	if err != nil {
-		panic(err)
-	}
-	//TODo: verify that patch
-	//TODO: implement enable the patch resource
-	//TODO: EnableGlobalNetworkPoliciesPatch resource?
-
 }
 
 // TODO: how to wait for calico resources to be available
@@ -123,6 +111,7 @@ func (p *CalicoProvider) Resources(ctx context.Context) []func() resource.Resour
 func (p *CalicoProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewExampleDataSource,
+		NewCoffeesDataSource,
 	}
 }
 

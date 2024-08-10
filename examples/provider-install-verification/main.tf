@@ -8,4 +8,4 @@ terraform {
 
 provider "calico" {}
 
-#data "calico_coffees" "example" {}
+data "calico_coffees" "example" {}
