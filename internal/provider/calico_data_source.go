@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/projectcalico/api/pkg/client/clientset_generated/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 func NewCoffeesDataSource() datasource.DataSource {
@@ -16,6 +18,20 @@ func NewCoffeesDataSource() datasource.DataSource {
 
 type coffeesDataSource struct {
 	client *clientset.Clientset
+}
+
+// TODO: rename
+type GlobalNetworkPoliciesDataSourceModel struct {
+	Policies []string `tfsdk:"policies"`
+}
+
+type globalNetworkPolicyModel struct {
+	ID          types.Int64   `tfsdk:"id"`
+	Name        types.String  `tfsdk:"name"`
+	Teaser      types.String  `tfsdk:"teaser"`
+	Description types.String  `tfsdk:"description"`
+	Price       types.Float64 `tfsdk:"price"`
+	Image       types.String  `tfsdk:"image"`
 }
 
 // TODO: rename the datasource
@@ -56,20 +72,32 @@ func (d *coffeesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 }
 
 func (d *coffeesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	//var state ExampleDataSourceModel
+	var state GlobalNetworkPoliciesDataSourceModel
+	//TODO: define the state model and set the state on it
 
 	//TODO: what is this contxt?
 	//TODO: replace the context
 
 	//TODO: finish implementing and create a kubeconfig to test
 
-	_, err := d.client.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), v1.ListOptions{})
+	result, err := d.client.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), v1.ListOptions{})
 
+	//TODO:, error, not panic?
 	if err != nil {
 		panic(err)
 	}
-	//TODo: verify that patch
+
+	for _, item := range result.Items {
+		state.Policies = append(state.Policies, item.ObjectMeta.Name)
+	}
+
+	// Set state
+	diags := resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	//TODO: implement enable the patch resource
 	//TODO: EnableGlobalNetworkPoliciesPatch resource?
-
 }
