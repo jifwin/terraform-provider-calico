@@ -80,7 +80,9 @@ func (d *coffeesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	//TODO: finish implementing and create a kubeconfig to test
 
-	result, err := d.client.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), v1.ListOptions{})
+	//TODO: replace
+	//result, err := d.client.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), v1.ListOptions{})
+	result, err := d.client.ProjectcalicoV3().KubeControllersConfigurations().List(context.Background(), v1.ListOptions{})
 
 	//TODO:, error, not panic?
 	if err != nil {
