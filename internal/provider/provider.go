@@ -5,10 +5,10 @@ package provider
 
 import (
 	"context"
-	"flag"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/projectcalico/api/pkg/client/clientset_generated/clientset"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
@@ -53,37 +54,54 @@ func (p *CalicoProvider) Schema(ctx context.Context, req provider.SchemaRequest,
 	}
 }
 
+// TODO: should verify connection to the cluster, etc
 func (p *CalicoProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data CalicoProviderModel
+	var config CalicoProviderModel
 
-	//TODO: should verify connection to the cluster, etc
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	//TODO: verify and refactor
+	if config.Kubeconfig.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("kubeconfig"),
+			"Unknown kubeconfig",
+			"Kubeconfig not configured",
+		)
+	}
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Create a new config based on kubeconfig file.
-	var kubeconfig *string //TODO: read from context
-	kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	flag.Parse() //TODO: read from context
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	//TODO: load from content, not from a file
+	kubeconfigGetter := func() (*clientcmdapi.Config, error) {
+		return clientcmd.LoadFromFile(config.Kubeconfig.String())
+	}
+
+	//TODO: check that empty string arg
+	client, err := clientcmd.BuildConfigFromKubeconfigGetter("", kubeconfigGetter)
+
+	//TODO: proper err handling via diagnostics?
 	if err != nil {
 		panic(err.Error())
 	}
 
-	//TODO: read from content, not from file
-	// Build a clientset based on the provided kubeconfig file.
-	cs, err := clientset.NewForConfig(config) //TODO: pack this into resp?
+	clientset, err := clientset.NewForConfig(client)
+
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
-	resp.ResourceData = cs
-	resp.DataSourceData = cs
+
+	resp.ResourceData = clientset
+	resp.DataSourceData = clientset
 
 	//TODO: implement the first resource
 	//TODO: move out
-	_, err = cs.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), v1.ListOptions{})
+	_, err = clientset.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		panic(err)
 	}
