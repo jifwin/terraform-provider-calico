@@ -22,16 +22,11 @@ type coffeesDataSource struct {
 
 // TODO: rename
 type GlobalNetworkPoliciesDataSourceModel struct {
-	Policies []string `tfsdk:"policies"`
+	Policies []globalNetworkPolicyModel `tfsdk:"policies"`
 }
 
 type globalNetworkPolicyModel struct {
-	ID          types.Int64   `tfsdk:"id"`
-	Name        types.String  `tfsdk:"name"`
-	Teaser      types.String  `tfsdk:"teaser"`
-	Description types.String  `tfsdk:"description"`
-	Price       types.Float64 `tfsdk:"price"`
-	Image       types.String  `tfsdk:"image"`
+	Name types.String `tfsdk:"name"`
 }
 
 // TODO: rename the datasource
@@ -68,7 +63,20 @@ func (d *coffeesDataSource) Configure(_ context.Context, req datasource.Configur
 }
 
 func (d *coffeesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	resp.Schema = schema.Schema{}
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"policies": schema.ListNestedAttribute{
+				Computed: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func (d *coffeesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -90,7 +98,8 @@ func (d *coffeesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	for _, item := range result.Items {
-		state.Policies = append(state.Policies, item.ObjectMeta.Name)
+		data := globalNetworkPolicyModel{Name: types.StringValue(item.ObjectMeta.Name)}
+		state.Policies = append(state.Policies, data)
 	}
 
 	// Set state
