@@ -17,6 +17,8 @@ provider "calico" {
 
 data "calico_coffees" "example" {}
 
+resource "calico_kube_controllers_configurations_patch" "this" {}
+
 output "test" {
   value = data.calico_coffees.example
 }

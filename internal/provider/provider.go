@@ -111,15 +111,12 @@ func (p *CalicoProvider) Resources(ctx context.Context) []func() resource.Resour
 
 func (p *CalicoProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
 		NewCoffeesDataSource,
 	}
 }
 
 func (p *CalicoProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
+	return []func() function.Function{}
 }
 
 func New(version string) func() provider.Provider {

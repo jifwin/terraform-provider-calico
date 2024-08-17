@@ -6,8 +6,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net/http"
-
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -16,6 +14,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/projectcalico/api/pkg/client/clientset_generated/clientset"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apimachinery "k8s.io/apimachinery/pkg/types"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -28,7 +29,7 @@ func NewExampleResource() resource.Resource {
 
 // ExampleResource defines the resource implementation.
 type ExampleResource struct {
-	client *http.Client
+	client *clientset.Clientset
 }
 
 // ExampleResourceModel describes the resource data model.
@@ -39,7 +40,7 @@ type ExampleResourceModel struct {
 }
 
 func (r *ExampleResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_example"
+	resp.TypeName = req.ProviderTypeName + "_kube_controllers_configurations_patch"
 }
 
 func (r *ExampleResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -75,7 +76,7 @@ func (r *ExampleResource) Configure(ctx context.Context, req resource.ConfigureR
 		return
 	}
 
-	client, ok := req.ProviderData.(*http.Client)
+	client, ok := req.ProviderData.(*clientset.Clientset)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -98,6 +99,33 @@ func (r *ExampleResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	//TODO: how to read a patch using read and very that it's applied?
+	//TODO: how to verify that nothing else changed?
+	//TODO: read from a plan
+	//TODO: name from above?
+
+	//TODO: choose patch type
+
+	/*
+
+		const (
+			JSONPatchType           PatchType = "application/json-patch+json"
+			MergePatchType          PatchType = "application/merge-patch+json"
+			StrategicMergePatchType PatchType = "application/strategic-merge-patch+json"
+			ApplyPatchType          PatchType = "application/apply-patch+yaml"
+		)
+	*/
+
+	//TODO: is it ok to pass it as string?
+	//TODO: unpatching will not be supported? or restore to the original state?
+	//TODO: check patch options
+	patch := "{\"spec\": {\"controllers\": {\"node\": {\"hostEndpoint\":{\"autoCreate\": \"Enabled\"}}}}}"
+
+	result, err := r.client.ProjectcalicoV3().KubeControllersConfigurations().Patch(
+		ctx, "default", apimachinery.JSONPatchType, []byte(patch), v1.PatchOptions{})
+
+	//TODO: return the whole thing as a result and then compare in read?
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
